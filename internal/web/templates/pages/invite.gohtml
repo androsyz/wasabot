@@ -1,0 +1,21 @@
+{{define "page"}}{{template "authshell" .}}{{end}}
+
+{{define "authbody"}}
+<div class="card-wrap">
+  <div class="mascot" aria-hidden="true"><span class="m-idle">{{sprite "mascot" "sprite-mascot"}}</span><span class="m-cover">{{sprite "mascot-cover" "sprite-mascot"}}</span></div>
+  <section class="card frame frame-lg">
+    <h1>Join {{.Invite.Client}} on wasabot</h1>
+    <p class="sub">Invited by {{.Invite.Inviter}} as {{.Invite.Role}} user</p>
+    {{if .Notice}}<div class="notice notice-bad" role="alert">{{.Notice}}</div>{{end}}
+    <form method="post" action="{{.Invite.Action}}">
+      <div><label class="sr-only" for="email">Email</label><input id="email" class="field frame" type="email" name="email" value="{{.Invite.Email}}" readonly></div>
+      <div><label class="sr-only" for="name">Name</label><input id="name" class="field frame" type="text" name="name" placeholder="name" autocomplete="name" required></div>
+      <div><label class="sr-only" for="password">Password</label><input id="password" class="field frame" type="password" name="password" placeholder="password" autocomplete="new-password" minlength="12" data-strength="meter" required></div>
+      <div><label class="sr-only" for="confirm">Confirm password</label><input id="confirm" class="field frame" type="password" name="confirm" placeholder="confirm password" autocomplete="new-password" minlength="12" required></div>
+      <div><div class="meter" id="meter" data-score="0"><i></i><i></i><i></i><i></i></div><p class="hint">min 12 characters</p></div>
+      <button class="btn frame btn-block" type="submit">Create account</button>
+      <button class="btn btn-blue frame btn-block" type="button" aria-disabled="true" title="Coming soon"><span class="g-mark">G</span>Continue with Google</button>
+    </form>
+  </section>
+</div>
+{{end}}

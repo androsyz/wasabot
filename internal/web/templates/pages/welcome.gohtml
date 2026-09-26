@@ -1,0 +1,25 @@
+{{define "page"}}{{template "authshell" .}}{{end}}
+
+{{define "authbody"}}
+<div class="card-wrap">
+  <div class="mascot" aria-hidden="true"><span class="m-idle">{{sprite "mascot" "sprite-mascot"}}</span><span class="m-cover">{{sprite "mascot-cover" "sprite-mascot"}}</span></div>
+  <section class="card frame frame-lg">
+    <h1>Secure your account</h1>
+    <p class="sub">You signed in with the default login. Choose your own email and a new password to continue.</p>
+    {{if .Notice}}<div class="notice notice-bad" role="alert">{{.Notice}}</div>{{end}}
+    <form method="post" action="/welcome">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <div><label class="sr-only" for="name">Name</label><input id="name" class="field frame" type="text" name="name" value="{{.Name}}" placeholder="Name" autocomplete="name" required></div>
+      <div><label class="sr-only" for="email">Email</label><input id="email" class="field frame" type="email" name="email" value="{{.Email}}" placeholder="email" autocomplete="username" required></div>
+      <div><label class="sr-only" for="password">New password</label><input id="password" class="field frame" type="password" name="password" placeholder="new password" autocomplete="new-password" minlength="12" data-strength="meter" required></div>
+      <div><label class="sr-only" for="confirm">Confirm new password</label><input id="confirm" class="field frame" type="password" name="confirm" placeholder="confirm new password" autocomplete="new-password" minlength="12" required></div>
+      <div><div class="meter" id="meter" data-score="0"><i></i><i></i><i></i><i></i></div><p class="hint">min 12 characters</p></div>
+      <button class="btn frame btn-block" type="submit">Save and continue</button>
+    </form>
+    <form method="post" action="/logout" class="plain-form">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <button class="link-button" type="submit">Log out</button>
+    </form>
+  </section>
+</div>
+{{end}}

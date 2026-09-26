@@ -1,0 +1,22 @@
+{{define "page"}}{{template "authshell" .}}{{end}}
+
+{{define "authbody"}}
+<div class="card-wrap">
+  <div class="mascot" aria-hidden="true"><span class="m-idle">{{sprite "mascot" "sprite-mascot"}}</span><span class="m-cover">{{sprite "mascot-cover" "sprite-mascot"}}</span></div>
+  <section class="card frame frame-lg">
+    <h1>Log in to wasabot</h1>
+    {{if .Notice}}<div class="notice notice-bad" role="alert">{{.Notice}}</div>{{end}}
+    {{if .DefaultLogin}}<div class="notice" id="default-login">First time here? Sign in with <strong>admin</strong> / <strong>admin</strong>. You will then choose your own email and password.</div>{{end}}
+    <form method="post" action="/login">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <div><label class="sr-only" for="email">Email</label><input id="email" class="field frame" type="text" inputmode="email" autocapitalize="none" spellcheck="false" name="email" value="{{.Email}}" placeholder="Email" autocomplete="username" required></div>
+      <div><label class="sr-only" for="password">Password</label><input id="password" class="field frame" type="password" name="password" placeholder="password" autocomplete="current-password" required></div>
+      <div class="row-between"><label class="check"><input type="checkbox" name="remember">Remember me</label><a href="/forgot">Forgot password?</a></div>
+      <button class="btn frame btn-block" type="submit">Log in</button>
+      <div class="divider">or</div>
+      <button class="btn btn-blue frame btn-block" type="button" aria-disabled="true" title="Coming soon"><span class="g-mark">G</span>Continue with Google</button>
+    </form>
+  </section>
+</div>
+<p class="after-card">Need access? Ask your admin for an invite.<small>(no public sign-up link)</small></p>
+{{end}}

@@ -1,0 +1,17 @@
+{{define "page"}}{{template "authshell" .}}{{end}}
+
+{{define "authbody"}}
+<div class="card-wrap">
+  <div class="mascot" aria-hidden="true">{{sprite "mascot-worry" "sprite-mascot"}}</div>
+  <section class="card frame frame-lg">
+    <h1>Forgot password</h1>
+    {{if .Notice}}<div class="notice notice-bad" role="alert">{{.Notice}}</div>{{end}}
+    <form method="post" action="/forgot">
+      <div><label class="sr-only" for="email">Email</label><input id="email" class="field frame" type="email" name="email" placeholder="Email" autocomplete="username" required></div>
+      <button class="btn frame btn-block" type="submit">Send reset link</button>
+    </form>
+    <p class="fineprint">If an account exists for this email, we've sent a link.</p>
+    <a class="center-link" href="/login">Back to log in</a>
+  </section>
+</div>
+{{end}}

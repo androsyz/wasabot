@@ -1,0 +1,53 @@
+{{define "page"}}{{template "app" .}}{{end}}
+
+{{define "content"}}
+<div class="page-head">
+  <h1 class="page-title">Clients Overview</h1>
+  <form class="filters" id="clients-filter" method="get" action="/clients"
+        hx-get="/clients" hx-target="#clients-results" hx-push-url="true"
+        hx-trigger="input changed delay:250ms from:#search, change from:#status">
+    {{with .Header.Selected}}<input type="hidden" name="client" value="{{.ID}}">{{end}}
+    <div class="search">
+      {{sprite "icon-search" "sprite-search"}}
+      <label class="sr-only" for="search">Search clients</label>
+      <input id="search" class="field field-search frame" type="search" name="q" value="{{.Body.Query}}" placeholder="Search" autocomplete="off">
+    </div>
+    <div class="select-wrap">
+      <label class="sr-only" for="status">Filter by status</label>
+      <select id="status" class="select frame" name="status">
+        {{range .Body.Filters}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </div>
+    <button type="button" class="btn frame" aria-disabled="true" title="Coming soon">Add Client</button>
+  </form>
+</div>
+<section id="clients-results" class="frame frame-lg table-wrap" aria-live="polite">{{template "clients_table" .Body}}</section>
+{{end}}
+
+{{define "clients_table"}}<table class="clients">
+  <thead>
+    <tr>
+      <th scope="col">Client</th>
+      <th scope="col">Status</th>
+      <th scope="col">WhatsApp #</th>
+      <th scope="col">Active agent<br>&amp; model</th>
+      <th scope="col">Stats<br>(today/month)</th>
+      <th scope="col">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Rows}}<tr>
+      <td><div class="client-cell"><span class="avatar frame av-{{.Avatar.Tone}}">{{sprite .Avatar.Sprite "sprite-avatar"}}</span><span>{{.Name}}</span></div></td>
+      <td><span class="status"><i class="dot dot-{{.Status.Tone}}"></i>{{.Status.Label}}</span></td>
+      <td>{{if .Phone}}{{.Phone}}{{else}}<span class="muted">Not linked</span>{{end}}</td>
+      <td>{{.Agent}}</td>
+      <td class="stat">Today: {{.Today}}<br>Month: {{.Month}}</td>
+      <td><div class="actions">{{range .Actions}}{{if .Button}}<button type="button" class="btn frame{{if eq .Button "blue"}} btn-blue{{end}}" aria-disabled="true" title="Coming soon">{{.Label}}</button>{{else}}<button type="button" class="link-action{{if .Open}} is-open{{end}}" aria-disabled="true" title="Coming soon">{{.Label}}</button>{{end}}{{end}}</div></td>
+    </tr>
+    {{else}}<tr><td colspan="6" class="empty">
+      {{sprite "mascot-sleepy" "sprite-mascot"}}
+      {{if .Filtered}}No clients match your search.{{else}}No clients yet.{{end}}
+    </td></tr>
+    {{end}}
+  </tbody>
+</table>{{end}}

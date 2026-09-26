@@ -1,0 +1,61 @@
+{{define "head"}}<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eeede4">
+<title>{{.Title}} · wasabot</title>
+<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false}'>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/css/app.css">
+<script src="/static/js/theme.js"></script>
+<script src="/static/js/htmx.min.js" defer></script>
+<script src="/static/js/app.js" defer></script>{{end}}
+
+{{define "themetoggle"}}<button type="button" class="toggle" role="switch" aria-checked="false" aria-label="Dark mode" title="Light or dark mode (follows your system until you choose)" data-theme-toggle>{{sprite "toggle-track" "toggle-track"}}<span class="toggle-thumb">{{sprite "toggle-sun" "toggle-sun"}}{{sprite "toggle-moon" "toggle-moon"}}</span></button>{{end}}
+
+{{define "app"}}<!doctype html>
+<html lang="en" data-theme="light">
+<head>{{template "head" .}}</head>
+<body hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}'>
+<div class="statusbar" role="status">
+  <span>Status:</span>
+  <span><i class="dot dot-ok"></i>{{.Bar.Connected}} Connected</span>
+  <span class="sep">·</span>
+  <span><i class="dot dot-bad"></i>{{.Bar.Stopped}} Stopped</span>
+  {{if .Bar.Connecting}}<span class="sep">·</span><span><i class="dot dot-wait"></i>{{.Bar.Connecting}} Connecting</span>{{end}}
+</div>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="/clients">{{sprite "mascot" "sprite-mascot-sm"}}<span class="brand-word">wasabot</span></a>
+    <nav class="nav" aria-label="Main">
+      <div class="nav-label">Navigation</div>
+      {{range .Nav}}{{if .Href}}<a class="nav-item" href="{{.Href}}"{{if .Active}} aria-current="page"{{end}}>{{sprite .Icon "sprite-icon"}}<span>{{.Label}}{{if .Active}}<small>Active page</small>{{end}}</span></a>
+      {{else}}<span class="nav-item" aria-disabled="true" title="Coming soon">{{sprite .Icon "sprite-icon"}}<span>{{.Label}}</span></span>
+      {{end}}{{end}}
+    </nav>
+    <div class="nav-foot">
+      <span class="nav-item" aria-disabled="true" title="Coming soon">{{sprite "icon-settings" "sprite-icon"}}<span>Settings</span></span>
+      <form method="post" action="/logout">
+        <input type="hidden" name="csrf" value="{{.CSRF}}">
+        <button type="submit" class="nav-item nav-button">{{sprite "icon-logout" "sprite-icon"}}<span>Log out<small>{{.User}}</small></span></button>
+      </form>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      {{sprite "mascot-wave" "sprite-mascot"}}
+      {{with .Header.Selected}}<span class="conn"><i class="dot dot-{{.Status.Tone}}"></i>WhatsApp {{.Status.Label}}</span>{{end}}
+      <span class="topbar-spacer"></span>
+      {{if .Header.Clients}}<form class="picker select-wrap" method="get" action="/clients">
+        <label class="sr-only" for="client-picker">Client</label>
+        <i class="dot dot-{{.Header.Selected.Status.Tone}}"></i>
+        <select id="client-picker" class="select frame" name="client" data-autosubmit>
+          {{range .Header.Clients}}<option value="{{.ID}}"{{if .Selected}} selected{{end}}>Client: {{.Name}}</option>{{end}}
+        </select>
+      </form>{{end}}
+      {{template "themetoggle"}}
+    </header>
+    <main class="page">{{template "content" .}}</main>
+  </div>
+</div>
+</body>
+</html>{{end}}

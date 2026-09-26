@@ -1,0 +1,11 @@
+{{define "authshell"}}<!doctype html>
+<html lang="en" data-theme="light">
+<head>{{template "head" .}}</head>
+<body class="auth">
+<div class="auth-top">
+  <a class="brand" href="/">{{sprite "mascot" "sprite-mascot-sm"}}<span class="brand-word">wasabot</span></a>
+  {{template "themetoggle"}}
+</div>
+<main class="auth-main">{{template "authbody" .}}</main>
+</body>
+</html>{{end}}

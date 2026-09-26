@@ -1,0 +1,23 @@
+{{define "page"}}{{template "authshell" .}}{{end}}
+
+{{define "authbody"}}
+<div class="card-wrap">
+  <div class="mascot" aria-hidden="true">{{sprite "mascot-think" "sprite-mascot"}}</div>
+  <section class="card frame frame-lg">
+    <h1 class="code-title">Enter your 6-digit code</h1>
+    {{if .Notice}}<div class="notice notice-bad" role="alert">{{.Notice}}</div>{{end}}
+    <form method="post" action="/forgot/code">
+      <div class="code" data-code role="group" aria-label="6-digit code">
+        <input class="field frame" name="d1" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1" required>
+        <input class="field frame" name="d2" inputmode="numeric" maxlength="1" aria-label="Digit 2" required>
+        <input class="field frame" name="d3" inputmode="numeric" maxlength="1" aria-label="Digit 3" required>
+        <input class="field frame" name="d4" inputmode="numeric" maxlength="1" aria-label="Digit 4" required>
+        <input class="field frame" name="d5" inputmode="numeric" maxlength="1" aria-label="Digit 5" required>
+        <input class="field frame" name="d6" inputmode="numeric" maxlength="1" aria-label="Digit 6" required>
+      </div>
+      <button class="btn frame btn-block" type="submit">Verify</button>
+    </form>
+    <a class="center-link" href="/forgot/code">Use a recovery code</a>
+  </section>
+</div>
+{{end}}

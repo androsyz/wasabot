@@ -1,0 +1,12 @@
+{{define "page"}}{{template "authshell" .}}{{end}}
+
+{{define "authbody"}}
+<div class="card-wrap">
+  <div class="mascot" aria-hidden="true">{{sprite "mascot-worry" "sprite-mascot"}}</div>
+  <section class="card frame frame-lg">
+    <h1>{{.Heading}}</h1>
+    <p class="sub">{{.Message}}</p>
+    {{if .Back.Href}}<a class="btn frame btn-block mt" href="{{.Back.Href}}">{{.Back.Label}}</a>{{end}}
+  </section>
+</div>
+{{end}}
