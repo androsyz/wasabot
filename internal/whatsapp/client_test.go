@@ -10,27 +10,34 @@ import (
 	"go.mau.fi/whatsmeow"
 )
 
-func TestClient_showQR(t *testing.T) {
-	var qr, logs bytes.Buffer
-	c := &Client{
-		log:   slog.New(slog.NewTextHandler(&logs, nil)),
-		qrOut: &qr,
-	}
+func TestClient_forwardQR(t *testing.T) {
+	var logs bytes.Buffer
+	c := &Client{log: slog.New(slog.NewTextHandler(&logs, nil))}
+	var got []QREvent
+	c.OnQR(func(e QREvent) { got = append(got, e) })
 
-	items := make(chan whatsmeow.QRChannelItem, 3)
+	items := make(chan whatsmeow.QRChannelItem, 4)
 	items <- whatsmeow.QRChannelItem{Event: whatsmeow.QRChannelEventCode, Code: "2@secret-pairing-code", Timeout: time.Minute}
 	items <- whatsmeow.QRChannelSuccess
+	items <- whatsmeow.QRChannelTimeout
 	close(items)
 
-	c.showQR(items)
+	c.forwardQR(items)
 
-	if qr.Len() == 0 {
-		t.Fatal("want QR rendered to qrOut")
-	}
-	if !strings.Contains(logs.String(), "event=success") {
-		t.Fatalf("want success logged, got %q", logs.String())
+	if len(got) != 2 || got[0].Code != "2@secret-pairing-code" || got[1].Err == nil {
+		t.Fatalf("want the code, then the timeout as an error; got %+v", got)
 	}
 	if strings.Contains(logs.String(), "secret-pairing-code") {
 		t.Fatalf("pairing code must never be logged: %q", logs.String())
 	}
+}
+
+func TestClient_forwardQRWithoutAHandler(t *testing.T) {
+	c := &Client{log: slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil))}
+
+	items := make(chan whatsmeow.QRChannelItem, 1)
+	items <- whatsmeow.QRChannelItem{Event: whatsmeow.QRChannelEventCode, Code: "2@x"}
+	close(items)
+
+	c.forwardQR(items) // must not panic
 }

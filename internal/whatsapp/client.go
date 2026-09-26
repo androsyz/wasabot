@@ -2,11 +2,10 @@ package whatsapp
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 
-	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
@@ -16,14 +15,19 @@ import (
 )
 
 type Client struct {
-	wm    *whatsmeow.Client
-	log   *slog.Logger
-	qrOut io.Writer
+	wm   *whatsmeow.Client
+	log  *slog.Logger
+	onQR func(QREvent)
+}
+
+// QREvent is one step of pairing: a code to show, or the reason pairing ended without success.
+type QREvent struct {
+	Code string
+	Err  error
 }
 
 // NewClient does not connect. An empty jid creates a new device to pair.
-// The QR code goes to qrOut, never to the logs: it is a pairing credential.
-func (s *Sessions) NewClient(ctx context.Context, jid string, qrOut io.Writer) (*Client, error) {
+func (s *Sessions) NewClient(ctx context.Context, jid string) (*Client, error) {
 	dev, err := s.device(ctx, jid)
 	if err != nil {
 		return nil, err
@@ -34,7 +38,7 @@ func (s *Sessions) NewClient(ctx context.Context, jid string, qrOut io.Writer) (
 	// contacts and message keys. The sync is still acknowledged.
 	wm.ManualHistorySyncDownload = true
 
-	return &Client{wm: wm, log: s.log, qrOut: qrOut}, nil
+	return &Client{wm: wm, log: s.log}, nil
 }
 
 // Connected is true once the connection is up and authenticated.
@@ -46,6 +50,10 @@ func (c *Client) Paired() bool {
 	return c.wm.Store.ID != nil
 }
 
+// OnQR sets who receives the pairing codes. It must be called before Connect, and the codes are
+// pairing credentials: pass them to the person pairing, never to the logs.
+func (c *Client) OnQR(h func(QREvent)) { c.onQR = h }
+
 // Connect reconnects from the stored device, or starts QR pairing if there is none.
 // Pairing continues in the background; ctx cancels it.
 func (c *Client) Connect(ctx context.Context) error {
@@ -55,7 +63,7 @@ func (c *Client) Connect(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("get qr channel: %w", err)
 		}
-		go c.showQR(items)
+		go c.forwardQR(items)
 	}
 
 	if err := c.wm.Connect(); err != nil {
@@ -76,6 +84,15 @@ func (c *Client) OnPaired(h func(jid string)) {
 func (c *Client) OnConnected(h func()) {
 	c.wm.AddEventHandler(func(evt any) {
 		if _, ok := evt.(*events.Connected); ok {
+			h()
+		}
+	})
+}
+
+// OnLoggedOut calls h when the phone or WhatsApp unlinks this device. The local device is gone by then.
+func (c *Client) OnLoggedOut(h func()) {
+	c.wm.AddEventHandler(func(evt any) {
+		if _, ok := evt.(*events.LoggedOut); ok {
 			h()
 		}
 	})
@@ -111,16 +128,38 @@ func (c *Client) Disconnect() {
 	c.wm.Disconnect()
 }
 
-func (c *Client) showQR(items <-chan whatsmeow.QRChannelItem) {
+// Logout unlinks the device from the account and deletes it locally. When WhatsApp cannot be
+// reached the device is still deleted locally, and the error says it stays listed on the phone.
+func (c *Client) Logout(ctx context.Context) error {
+	err := c.wm.Logout(ctx)
+	if err == nil {
+		return nil
+	}
+	c.wm.Disconnect()
+	return errors.Join(fmt.Errorf("unlink on whatsapp: %w", err), c.wm.Store.Delete(ctx))
+}
+
+func (c *Client) forwardQR(items <-chan whatsmeow.QRChannelItem) {
 	for item := range items {
 		switch item.Event {
 		case whatsmeow.QRChannelEventCode:
-			qrterminal.GenerateHalfBlock(item.Code, qrterminal.L, c.qrOut)
-			c.log.Info("scan the QR code in WhatsApp > Linked devices", "expires_in", item.Timeout)
-		case whatsmeow.QRChannelEventError:
-			c.log.Error("whatsapp pairing failed", "error", item.Error)
-		default:
+			c.log.Info("whatsapp pairing code ready", "expires_in", item.Timeout)
+			c.emit(QREvent{Code: item.Code})
+		case whatsmeow.QRChannelSuccess.Event:
 			c.log.Info("whatsapp pairing", "event", item.Event)
+		default:
+			err := item.Error
+			if err == nil {
+				err = fmt.Errorf("pairing ended: %s", item.Event)
+			}
+			c.log.Error("whatsapp pairing failed", "event", item.Event, "error", err)
+			c.emit(QREvent{Err: err})
 		}
+	}
+}
+
+func (c *Client) emit(e QREvent) {
+	if c.onQR != nil {
+		c.onQR(e)
 	}
 }

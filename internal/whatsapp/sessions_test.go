@@ -52,7 +52,7 @@ func TestSessions_NewClient_EmptyJIDIsUnpaired(t *testing.T) {
 		t.Fatalf("new sessions: %v", err)
 	}
 
-	c, err := s.NewClient(ctx, "", &bytes.Buffer{})
+	c, err := s.NewClient(ctx, "")
 	if err != nil {
 		t.Fatalf("new client: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestSessions_NewClient_ResumesStoredDevice(t *testing.T) {
 		t.Fatalf("put device: %v", err)
 	}
 
-	c, err := s.NewClient(ctx, jid.String(), &bytes.Buffer{})
+	c, err := s.NewClient(ctx, jid.String())
 	if err != nil {
 		t.Fatalf("new client: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestSessions_NewClient_UnknownJID(t *testing.T) {
 		t.Fatalf("new sessions: %v", err)
 	}
 
-	_, err = s.NewClient(ctx, "6289999999999:3@s.whatsapp.net", &bytes.Buffer{})
+	_, err = s.NewClient(ctx, "6289999999999:3@s.whatsapp.net")
 	if err == nil {
 		t.Fatal("want error for a JID with no stored device")
 	}
