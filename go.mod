@@ -4,12 +4,12 @@ go 1.26.0
 
 require (
 	github.com/joho/godotenv v1.5.1
-	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/openai/openai-go/v3 v3.66.0
 	github.com/pressly/goose/v3 v3.28.0
 	go.mau.fi/whatsmeow v0.0.0-20260925162019-b3832c2bd1d1
 	golang.org/x/crypto v0.57.0
 	modernc.org/sqlite v1.59.0
+	rsc.io/qr v0.2.0
 )
 
 require (
@@ -79,7 +79,6 @@ require (
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/term v0.46.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260831171406-18b4a7587f8a // indirect
 	google.golang.org/grpc v1.83.2 // indirect
@@ -88,7 +87,6 @@ require (
 	modernc.org/libc v1.75.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
-	rsc.io/qr v0.2.0 // indirect
 )
 
 tool github.com/pressly/goose/v3/cmd/goose

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/androsyz/wasabot/internal/auth"
 	"github.com/androsyz/wasabot/internal/config"
 	"github.com/androsyz/wasabot/internal/db/dbtest"
+	"github.com/androsyz/wasabot/internal/manager"
 	"github.com/androsyz/wasabot/internal/store"
 	"github.com/androsyz/wasabot/internal/web"
 )
@@ -47,13 +49,19 @@ func newWebApp(t *testing.T) (*app, *syncBuffer) {
 		t.Fatalf("auth service: %v", err)
 	}
 	logs := &syncBuffer{}
+	log := slog.New(slog.NewTextHandler(logs, nil))
+	noDevices := func(context.Context, string) (manager.Device, error) {
+		return nil, errors.New("no whatsapp in this test")
+	}
+	mgr := manager.New(st.WhatsAppSessions, noDevices, nil, log)
+	t.Cleanup(mgr.Close)
 	return &app{
 		cfg:     config.Config{Addr: "127.0.0.1:0"},
-		log:     slog.New(slog.NewTextHandler(logs, nil)),
+		log:     log,
 		db:      sqlDB,
 		store:   st,
 		auth:    svc,
-		runtime: newRuntime(),
+		manager: mgr,
 	}, logs
 }
 

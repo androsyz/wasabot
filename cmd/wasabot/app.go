@@ -3,14 +3,13 @@ package main
 import (
 	"context"
 	"database/sql"
-	"io"
 	"log/slog"
-	"os"
 
 	"github.com/androsyz/wasabot/internal/auth"
 	"github.com/androsyz/wasabot/internal/bot"
 	"github.com/androsyz/wasabot/internal/config"
 	"github.com/androsyz/wasabot/internal/db"
+	"github.com/androsyz/wasabot/internal/manager"
 	"github.com/androsyz/wasabot/internal/store"
 	"github.com/androsyz/wasabot/internal/whatsapp"
 )
@@ -18,15 +17,13 @@ import (
 const botWorkers = 4
 
 type app struct {
-	cfg      config.Config
-	log      *slog.Logger
-	qrOut    io.Writer
-	db       *sql.DB
-	store    *store.Store
-	sessions *whatsapp.Sessions
-	bot      *bot.Bot
-	auth     *auth.Service
-	runtime  *runtime
+	cfg     config.Config
+	log     *slog.Logger
+	db      *sql.DB
+	store   *store.Store
+	bot     *bot.Bot
+	auth    *auth.Service
+	manager *manager.Manager
 
 	agentLabel string // shown on the dashboard
 }
@@ -61,23 +58,33 @@ func newApp(ctx context.Context, cfg config.Config, log *slog.Logger) (a *app, e
 	if err != nil {
 		return nil, err
 	}
+	b := bot.New(st.Messages, log, responder, bot.Options{
+		Workers:   botWorkers,
+		Fallback:  cfg.FallbackReply,
+		RateLimit: cfg.RateLimit,
+		MaxAge:    cfg.MaxMessageAge,
+	})
 	return &app{
 		cfg:        cfg,
 		log:        log,
-		qrOut:      os.Stdout,
 		db:         sqlDB,
 		store:      st,
-		sessions:   sessions,
 		auth:       authService,
-		runtime:    newRuntime(),
+		bot:        b,
+		manager:    manager.New(st.WhatsAppSessions, newDevice(sessions), b, log),
 		agentLabel: agentLabel,
-		bot: bot.New(st.Messages, log, responder, bot.Options{
-			Workers:   botWorkers,
-			Fallback:  cfg.FallbackReply,
-			RateLimit: cfg.RateLimit,
-			MaxAge:    cfg.MaxMessageAge,
-		}),
 	}, nil
+}
+
+// newDevice adapts whatsapp.Sessions to what the manager asks for.
+func newDevice(sessions *whatsapp.Sessions) manager.NewDevice {
+	return func(ctx context.Context, jid string) (manager.Device, error) {
+		c, err := sessions.NewClient(ctx, jid)
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
+	}
 }
 
 func (a *app) Close() {
