@@ -7,8 +7,8 @@ messages it receives. One instance can serve many clients.
 
 > **Status: early development.** WhatsApp pairing, message storage and a per-chat reply queue work.
 > The agent answers with conversation memory and can call tools (currently `current_time`).
-> The web UI has first-run setup, login and the clients dashboard. Invites, password reset and client
-> management pages are designed but not wired up yet.
+> The dashboard can add clients, link and unlink their WhatsApp numbers, and start or stop them.
+> Invites, password reset and the other pages are designed but not wired up yet.
 
 ## Requirements
 
@@ -41,8 +41,11 @@ and admin/admin stops working.
 The web UI follows your system's light or dark setting until you switch it with the toggle in the top
 right; your choice is remembered, and switching back to what your system uses goes back to following it.
 
-The dashboard is at http://127.0.0.1:8080. On first run a QR code is also shown. Scan it in WhatsApp > Settings > Linked devices. Later runs reconnect
-without a QR, and messages that were still waiting for a reply are answered. Send a message from another number and the bot replies.
+The dashboard is at http://127.0.0.1:8080. To link a number, choose **Add Client**, then **Show QR** on its row and scan the
+code in WhatsApp > Settings > Linked devices. Later runs reconnect without a QR, and messages that were still waiting for a reply
+are answered. Send a message from another number and the bot replies.
+
+**Stop** disconnects a client until you press **Start** or restart wasabot; **Logout** unlinks its number for good.
 
 ## Configuration
 
