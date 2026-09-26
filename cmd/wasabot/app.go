@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/androsyz/wasabot/internal/auth"
 	"github.com/androsyz/wasabot/internal/bot"
 	"github.com/androsyz/wasabot/internal/config"
 	"github.com/androsyz/wasabot/internal/db"
@@ -24,6 +25,10 @@ type app struct {
 	store    *store.Store
 	sessions *whatsapp.Sessions
 	bot      *bot.Bot
+	auth     *auth.Service
+	runtime  *runtime
+
+	agentLabel string // shown on the dashboard
 }
 
 func newApp(ctx context.Context, cfg config.Config, log *slog.Logger) (a *app, err error) {
@@ -48,20 +53,31 @@ func newApp(ctx context.Context, cfg config.Config, log *slog.Logger) (a *app, e
 	}
 
 	st := store.New(sqlDB)
+	authService, err := auth.NewService(st, auth.Options{})
+	if err != nil {
+		return nil, err
+	}
+	responder, agentLabel, err := newResponder(cfg, log, st.Messages)
+	if err != nil {
+		return nil, err
+	}
 	return &app{
-		cfg:      cfg,
-		log:      log,
-		qrOut:    os.Stdout,
-		db:       sqlDB,
-		store:    st,
-		sessions: sessions,
-		bot:      bot.New(st.Messages, log, echo, botWorkers),
+		cfg:        cfg,
+		log:        log,
+		qrOut:      os.Stdout,
+		db:         sqlDB,
+		store:      st,
+		sessions:   sessions,
+		auth:       authService,
+		runtime:    newRuntime(),
+		agentLabel: agentLabel,
+		bot: bot.New(st.Messages, log, responder, bot.Options{
+			Workers:   botWorkers,
+			Fallback:  cfg.FallbackReply,
+			RateLimit: cfg.RateLimit,
+			MaxAge:    cfg.MaxMessageAge,
+		}),
 	}, nil
-}
-
-// echo is a placeholder until the agent loop (Milestone 2).
-func echo(_ context.Context, _ int64, msg bot.Message) (string, error) {
-	return "you said: " + msg.Text, nil
 }
 
 func (a *app) Close() {
