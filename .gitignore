@@ -1,0 +1,45 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bin/
+/dist/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Coverage output
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Databases (including SQLite WAL side files)
+*.db
+*.db-wal
+*.db-shm
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+tmp/
