@@ -18,9 +18,11 @@
         {{range .Body.Filters}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
       </select>
     </div>
-    <button type="button" class="btn frame" aria-disabled="true" title="Coming soon">Add Client</button>
+    {{if .Body.CanAdd}}<button type="button" class="btn frame" hx-get="/clients/new" hx-target="#panel" hx-push-url="false">Add Client</button>{{end}}
   </form>
 </div>
+{{with .Body.Notice}}<div class="notice notice-bad" role="alert">{{.}}</div>{{end}}
+<div id="panel" aria-live="polite"></div>
 <section id="clients-results" class="frame frame-lg table-wrap" aria-live="polite">{{template "clients_table" .Body}}</section>
 {{end}}
 
@@ -42,7 +44,7 @@
       <td>{{if .Phone}}{{.Phone}}{{else}}<span class="muted">Not linked</span>{{end}}</td>
       <td>{{.Agent}}</td>
       <td class="stat">Today: {{.Today}}<br>Month: {{.Month}}</td>
-      <td><div class="actions">{{range .Actions}}{{if .Button}}<button type="button" class="btn frame{{if eq .Button "blue"}} btn-blue{{end}}" aria-disabled="true" title="Coming soon">{{.Label}}</button>{{else}}<button type="button" class="link-action{{if .Open}} is-open{{end}}" aria-disabled="true" title="Coming soon">{{.Label}}</button>{{end}}{{end}}</div></td>
+      <td><div class="actions">{{range .Actions}}{{if .Panel}}<button type="button" class="btn frame btn-blue" hx-post="{{.Path}}" hx-target="#panel" hx-push-url="false">{{.Label}}</button>{{else if .Path}}<form class="inline" method="post" action="{{.Path}}"{{with .Confirm}} data-confirm="{{.}}"{{end}}><input type="hidden" name="csrf" value="{{$.CSRF}}"><button type="submit" class="{{if .Button}}btn frame{{if eq .Button "blue"}} btn-blue{{end}}{{else}}link-action{{end}}">{{.Label}}</button></form>{{else}}<button type="button" class="link-action{{if .Open}} is-open{{end}}" aria-disabled="true" title="Coming soon">{{.Label}}</button>{{end}}{{end}}</div></td>
     </tr>
     {{else}}<tr><td colspan="6" class="empty">
       {{sprite "mascot-sleepy" "sprite-mascot"}}
@@ -51,3 +53,29 @@
     {{end}}
   </tbody>
 </table>{{end}}
+
+
+{{define "empty"}}{{end}}
+
+{{define "add_panel"}}<form class="panel frame frame-lg" hx-post="/clients" hx-target="#panel" hx-push-url="false">
+  <h2 class="panel-title">Add client</h2>
+  {{with .Error}}<div class="notice notice-bad" role="alert">{{.}}</div>{{end}}
+  <label class="sr-only" for="client-name">Client name</label>
+  <input id="client-name" class="field frame" type="text" name="name" value="{{.Name}}" placeholder="Client name" maxlength="60" autocomplete="off" required autofocus>
+  <div class="panel-actions">
+    <button type="submit" class="btn frame">Add client</button>
+    <button type="button" class="btn frame btn-plain" data-close-panel>Cancel</button>
+  </div>
+</form>{{end}}
+
+{{define "pair_panel"}}<section class="panel frame frame-lg pair"{{if not .Failed}} hx-get="/clients/{{.ClientID}}/pair" hx-trigger="every 2s" hx-swap="outerHTML"{{end}}>
+  <h2 class="panel-title">Link WhatsApp to {{.Name}}</h2>
+  {{if .Failed}}<p class="muted">{{.Failed}}</p>
+  {{else if .QR}}{{.QR}}
+  <p class="muted">Open WhatsApp on the phone, choose Linked devices, then Link a device, and scan this code. It refreshes by itself.</p>
+  {{else}}<p class="muted">Getting a code…</p>{{end}}
+  <div class="panel-actions">
+    {{if .Failed}}<button type="button" class="btn frame btn-blue" hx-post="/clients/{{.ClientID}}/pair" hx-target="#panel" hx-push-url="false">Try again</button>{{end}}
+    <button type="button" class="btn frame btn-plain" hx-post="/clients/{{.ClientID}}/pair/cancel" hx-target="#panel" hx-push-url="false">{{if .Failed}}Close{{else}}Cancel{{end}}</button>
+  </div>
+</section>{{end}}

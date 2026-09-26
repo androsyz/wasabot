@@ -3,17 +3,20 @@ package web
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/androsyz/wasabot/internal/auth"
 	"github.com/androsyz/wasabot/internal/db/dbtest"
+	"github.com/androsyz/wasabot/internal/manager"
 	"github.com/androsyz/wasabot/internal/store"
 )
 
@@ -22,9 +25,62 @@ var (
 	testNow    = time.Date(2026, 9, 27, 12, 0, 0, 0, time.Local)
 )
 
-type stubRuntime map[int64]ClientStatus
+// stubRuntime reports fixed statuses and records what the dashboard asked of it.
+type stubRuntime struct {
+	mu       sync.Mutex
+	statuses map[int64]manager.Status
+	pairing  map[int64]manager.Pairing
+	calls    []string
+	err      error // returned by Start, Logout and Pair
+}
 
-func (r stubRuntime) Status(id int64) ClientStatus { return r[id] }
+func (r *stubRuntime) record(call string, id int64) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.calls = append(r.calls, fmt.Sprintf("%s %d", call, id))
+}
+
+func (r *stubRuntime) Called() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.calls...)
+}
+
+func (r *stubRuntime) Status(id int64) manager.Status {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.statuses[id]
+}
+
+func (r *stubRuntime) Start(id int64) error                     { r.record("start", id); return r.err }
+func (r *stubRuntime) Stop(id int64)                            { r.record("stop", id) }
+func (r *stubRuntime) Logout(_ context.Context, id int64) error { r.record("logout", id); return r.err }
+func (r *stubRuntime) Pair(id int64) error {
+	r.record("pair", id)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.err == nil {
+		if r.pairing == nil {
+			r.pairing = map[int64]manager.Pairing{}
+		}
+		if _, ok := r.pairing[id]; !ok {
+			r.pairing[id] = manager.Pairing{}
+		}
+	}
+	return r.err
+}
+func (r *stubRuntime) Pairing(id int64) (manager.Pairing, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	p, ok := r.pairing[id]
+	return p, ok
+}
+func (r *stubRuntime) CancelPair(id int64) {
+	r.record("cancel", id)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.pairing, id)
+}
 
 const (
 	adminPassword = "correct horse battery"
@@ -124,7 +180,9 @@ func build(t *testing.T, withAdmin, seed bool, mods ...func(*Options)) *fixture 
 		SetupCode: setupCode,
 		Now:       func() time.Time { return testNow },
 		Agent:     "'agent.md' | test-model",
-		Runtime:   stubRuntime{1: StatusConnected, 2: StatusPairing, 3: StatusStopped, 4: StatusLoggedOut},
+		Runtime: &stubRuntime{statuses: map[int64]manager.Status{
+			1: manager.StatusConnected, 2: manager.StatusPairing, 3: manager.StatusStopped, 4: manager.StatusLoggedOut,
+		}},
 	}
 	for _, mod := range mods {
 		mod(&opts)
@@ -189,7 +247,7 @@ func TestRoutes(t *testing.T) {
 		{"unknown page", true, "GET", "/nothing-here", 404, "Page not found"},
 		{"forgot submit is not built", true, "POST", "/forgot", 501, "Password reset is not available yet."},
 		{"code submit is not built", true, "POST", "/forgot/code", 501, "Code verification is not available yet."},
-		{"the dashboard takes no POST", false, "POST", "/clients", 405, ""},
+		{"the dashboard takes no PUT", false, "PUT", "/clients", 405, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

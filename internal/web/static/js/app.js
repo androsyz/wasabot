@@ -61,6 +61,18 @@
     if (el && el.form) el.form.submit();
   });
 
+  // ask before a destructive form is sent
+  document.addEventListener("submit", function (e) {
+    var message = e.target.getAttribute("data-confirm");
+    if (message && !window.confirm(message)) e.preventDefault();
+  });
+
+  // a button that dismisses the panel above the table
+  document.addEventListener("click", function (e) {
+    var close = e.target.closest("[data-close-panel]");
+    if (close) close.closest("#panel").replaceChildren();
+  });
+
   // password strength: 0 (empty) to 4
   function strength(pw) {
     if (!pw) return 0;

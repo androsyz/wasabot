@@ -55,10 +55,15 @@ type filterOption struct {
 	Selected     bool
 }
 
+// action is a control in a client's row. Path is what it posts to; Panel actions fill the panel
+// above the table instead of reloading the page. Without a Path the control is not built yet.
 type action struct {
-	Label  string
-	Button string // "", "green" or "blue": a button instead of a text link
-	Open   bool
+	Label   string
+	Button  string // "", "green" or "blue": a button instead of a text link
+	Open    bool
+	Path    string
+	Panel   bool
+	Confirm string // asked before the request is sent
 }
 
 type avatar struct {
@@ -83,6 +88,9 @@ type clientsBody struct {
 	Query    string
 	Filters  []filterOption
 	Filtered bool
+	CSRF     string
+	CanAdd   bool
+	Notice   string
 }
 
 // page is the data every app page gets: the shell (status bar, navigation, header) plus a body.
@@ -112,7 +120,7 @@ var statusFilters = []filterOption{
 
 // clientsPage builds the dashboard for who is asking: a super admin sees every client,
 // anyone else only the clients they belong to.
-func (s *Server) clientsPage(ctx context.Context, id auth.Identity, query, statusFilter, selected string) (page, error) {
+func (s *Server) clientsPage(ctx context.Context, id auth.Identity, query, statusFilter, selected, notice string) (page, error) {
 	var (
 		clients []store.Client
 		err     error
@@ -196,7 +204,7 @@ func (s *Server) clientsPage(ctx context.Context, id auth.Identity, query, statu
 			Agent:   s.opts.Agent,
 			Today:   todayCounts[c.ID],
 			Month:   monthCounts[c.ID],
-			Actions: actionsFor(status),
+			Actions: actionsFor(c.ID, status),
 		})
 	}
 	if chosen == nil {
@@ -218,13 +226,16 @@ func (s *Server) clientsPage(ctx context.Context, id auth.Identity, query, statu
 			Query:    query,
 			Filters:  filters,
 			Filtered: needle != "" || statusFilter != "all",
+			CSRF:     id.CSRFToken,
+			CanAdd:   id.User.Role == store.RoleSuperAdmin,
+			Notice:   notices[notice],
 		},
 	}, nil
 }
 
 func (s *Server) status(clientID int64, linked bool) ClientStatus {
 	if s.opts.Runtime != nil {
-		return s.opts.Runtime.Status(clientID)
+		return ClientStatus(s.opts.Runtime.Status(clientID))
 	}
 	if linked {
 		return StatusStopped
@@ -232,17 +243,23 @@ func (s *Server) status(clientID int64, linked bool) ClientStatus {
 	return StatusLoggedOut
 }
 
-func actionsFor(s ClientStatus) []action {
+func actionsFor(clientID int64, s ClientStatus) []action {
+	path := func(verb string) string { return fmt.Sprintf("/clients/%d/%s", clientID, verb) }
+	stop := action{Label: "Stop", Path: path("stop")}
+	start := action{Label: "Start", Button: "green", Path: path("start")}
+	logout := action{Label: "Logout", Path: path("logout"), Confirm: "Unlink this WhatsApp number? It will have to be paired again."}
+	qr := action{Label: "Show QR", Button: "blue", Path: path("pair"), Panel: true}
 	open := action{Label: "Open", Open: true}
+
 	switch s {
 	case StatusConnected, StatusReconnecting:
-		return []action{{Label: "Stop"}, {Label: "Logout"}, open}
+		return []action{stop, logout, open}
 	case StatusPairing:
-		return []action{{Label: "Show QR", Button: "blue"}, {Label: "Stop"}, open}
+		return []action{qr, open}
 	case StatusStopped:
-		return []action{{Label: "Start", Button: "green"}, {Label: "Logout"}, open}
+		return []action{start, logout, open}
 	default:
-		return []action{{Label: "Show QR", Button: "blue"}, open}
+		return []action{qr, open}
 	}
 }
 

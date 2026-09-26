@@ -35,7 +35,7 @@ type Options struct {
 	Log     *slog.Logger
 	Store   *store.Store
 	Auth    *auth.Service
-	Runtime Runtime // may be nil
+	Runtime Runtime // may be nil: the dashboard then shows stored state and offers no actions
 	Agent   string  // shown in the "active agent & model" column
 	Preview bool    // serve sample data for pages that have no backend yet
 
@@ -110,6 +110,14 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /static/", s.static())
 
 	mux.HandleFunc("GET /clients", s.protected(s.clients))
+	mux.HandleFunc("GET /clients/new", s.protected(s.addForm))
+	mux.HandleFunc("POST /clients", s.protected(s.addClient))
+	mux.HandleFunc("POST /clients/{id}/start", s.protected(s.startClient()))
+	mux.HandleFunc("POST /clients/{id}/stop", s.protected(s.stopClient()))
+	mux.HandleFunc("POST /clients/{id}/logout", s.protected(s.logoutClient()))
+	mux.HandleFunc("POST /clients/{id}/pair", s.protected(s.pairStart))
+	mux.HandleFunc("GET /clients/{id}/pair", s.protected(s.pairPoll))
+	mux.HandleFunc("POST /clients/{id}/pair/cancel", s.protected(s.pairCancel))
 	mux.HandleFunc("POST /logout", s.protectedWith(true, s.logout))
 	mux.HandleFunc("GET /welcome", s.protectedWith(true, s.welcomePage))
 	mux.HandleFunc("POST /welcome", s.protectedWith(true, s.welcomeSubmit))
@@ -187,7 +195,7 @@ func (s *Server) clients(w http.ResponseWriter, r *http.Request, id auth.Identit
 		filter = "all"
 	}
 
-	data, err := s.clientsPage(r.Context(), id, strings.TrimSpace(q.Get("q")), filter, q.Get("client"))
+	data, err := s.clientsPage(r.Context(), id, strings.TrimSpace(q.Get("q")), filter, q.Get("client"), q.Get("notice"))
 	if err != nil {
 		s.opts.Log.Error("load clients", "error", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
