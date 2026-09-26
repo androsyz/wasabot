@@ -37,6 +37,11 @@ func (s *Sessions) NewClient(ctx context.Context, jid string, qrOut io.Writer) (
 	return &Client{wm: wm, log: s.log, qrOut: qrOut}, nil
 }
 
+// Connected is true once the connection is up and authenticated.
+func (c *Client) Connected() bool {
+	return c.wm.IsConnected() && c.wm.IsLoggedIn()
+}
+
 func (c *Client) Paired() bool {
 	return c.wm.Store.ID != nil
 }
@@ -63,6 +68,15 @@ func (c *Client) OnPaired(h func(jid string)) {
 	c.wm.AddEventHandler(func(evt any) {
 		if e, ok := evt.(*events.PairSuccess); ok {
 			h(e.ID.String())
+		}
+	})
+}
+
+// OnConnected calls h each time the connection is established and authenticated, including reconnects.
+func (c *Client) OnConnected(h func()) {
+	c.wm.AddEventHandler(func(evt any) {
+		if _, ok := evt.(*events.Connected); ok {
+			h()
 		}
 	})
 }

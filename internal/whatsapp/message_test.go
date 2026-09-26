@@ -3,6 +3,7 @@ package whatsapp
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
@@ -27,9 +28,15 @@ func newEvent(text string, mutate func(*events.Message)) *events.Message {
 }
 
 func TestIncomingFrom_PlainText(t *testing.T) {
-	msg, ok := incomingFrom(newEvent("halo", nil))
+	sentAt := time.Date(2026, 9, 27, 8, 0, 0, 0, time.UTC)
+
+	msg, ok := incomingFrom(newEvent("halo", func(e *events.Message) { e.Info.Timestamp = sentAt }))
+
 	if !ok || msg.Text != "halo" || msg.ID != "MSG1" {
 		t.Fatalf("got %+v, %v", msg, ok)
+	}
+	if !msg.SentAt.Equal(sentAt) {
+		t.Fatalf("SentAt = %v, want WhatsApp's send time %v", msg.SentAt, sentAt)
 	}
 }
 

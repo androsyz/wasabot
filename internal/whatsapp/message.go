@@ -1,6 +1,8 @@
 package whatsapp
 
 import (
+	"time"
+
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 
@@ -12,6 +14,7 @@ type IncomingMessage struct {
 	Chat   string
 	Sender string
 	Text   string
+	SentAt time.Time
 }
 
 // MaskedSender is safe to log; the raw sender is a phone number.
@@ -39,5 +42,6 @@ func incomingFrom(evt *events.Message) (IncomingMessage, bool) {
 		Chat:   info.Chat.String(),
 		Sender: info.Sender.String(),
 		Text:   text,
+		SentAt: info.Timestamp,
 	}, true
 }
