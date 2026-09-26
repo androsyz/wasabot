@@ -7,6 +7,7 @@ type Store struct {
 	Users            *Users
 	WhatsAppSessions *WhatsAppSessions
 	Messages         *Messages
+	Sessions         *Sessions
 }
 
 // New accepts *sql.DB or, inside db.WithTx, the *sql.Tx, so store.New(tx) is a transaction-scoped Store.
@@ -16,5 +17,6 @@ func New(conn db.DBTX) *Store {
 		Users:            NewUsers(conn),
 		WhatsAppSessions: NewWhatsAppSessions(conn),
 		Messages:         NewMessages(conn),
+		Sessions:         NewSessions(conn),
 	}
 }

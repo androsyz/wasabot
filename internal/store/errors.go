@@ -7,4 +7,5 @@ var (
 	ErrEmailTaken       = errors.New("store: email already taken")
 	ErrJIDLinked        = errors.New("store: whatsapp number already linked to another client")
 	ErrDuplicateMessage = errors.New("store: duplicate message")
+	ErrUsersExist       = errors.New("store: a user already exists")
 )
