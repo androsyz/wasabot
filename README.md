@@ -1,4 +1,8 @@
-# wasabot
+<p align="center">
+  <img src="docs/assets/mascot.svg" alt="wasabot mascot" width="160">
+</p>
+
+<h1 align="center">wasabot</h1>
 
 A self-hosted AI assistant for WhatsApp, in a single Go binary.
 
