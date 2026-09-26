@@ -16,6 +16,15 @@ type Definition struct {
 	Prompt   string
 }
 
+// keySetters is the one list of frontmatter keys: the parser accepts exactly these, and a test
+// checks that docs/reference/agent-file.md documents exactly these.
+var keySetters = map[string]func(*Definition, string){
+	"name":     func(d *Definition, v string) { d.Name = v },
+	"model":    func(d *Definition, v string) { d.Model = v },
+	"language": func(d *Definition, v string) { d.Language = v },
+	"tools":    func(d *Definition, v string) { d.Tools = splitList(v) },
+}
+
 func LoadDefinition(path string) (Definition, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -68,19 +77,11 @@ func ParseDefinition(data []byte) (Definition, error) {
 		}
 		seen[key] = true
 
-		value = unquote(strings.TrimSpace(value))
-		switch key {
-		case "name":
-			def.Name = value
-		case "model":
-			def.Model = value
-		case "language":
-			def.Language = value
-		case "tools":
-			def.Tools = splitList(value)
-		default:
+		set, ok := keySetters[key]
+		if !ok {
 			return Definition{}, fmt.Errorf("line %d: unknown key %q", i+1, key)
 		}
+		set(&def, unquote(strings.TrimSpace(value)))
 	}
 
 	def.Prompt = strings.TrimSpace(strings.Join(lines[end+1:], "\n"))
