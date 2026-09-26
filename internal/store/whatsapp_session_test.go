@@ -101,3 +101,20 @@ func TestWhatsAppSessions_ListAndCascade(t *testing.T) {
 		t.Fatalf("want only B's session after deleting A, got %+v", all)
 	}
 }
+
+func TestWhatsAppSessions_Unlink(t *testing.T) {
+	ctx := context.Background()
+	st := New(dbtest.New(t))
+	c := mustClient(t, st, "Acme")
+	mustLink(t, st, c.ID, "6281234567890:7@s.whatsapp.net")
+
+	if err := st.WhatsAppSessions.Unlink(ctx, c.ID); err != nil {
+		t.Fatalf("unlink: %v", err)
+	}
+	if _, err := st.WhatsAppSessions.GetByClientID(ctx, c.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("got %v, want ErrNotFound after unlink", err)
+	}
+	if err := st.WhatsAppSessions.Unlink(ctx, c.ID); err != nil {
+		t.Fatalf("unlinking a client without a session is not an error: %v", err)
+	}
+}

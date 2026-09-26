@@ -17,6 +17,8 @@ const (
 		ON CONFLICT (client_id) DO UPDATE SET jid = excluded.jid, created_at = unixepoch()
 		RETURNING client_id, jid, created_at`
 
+	queryWhatsAppSessionUnlink = `DELETE FROM whatsapp_sessions WHERE client_id = ?`
+
 	queryWhatsAppSessionGetByClientID = `
 		SELECT client_id, jid, created_at
 		FROM whatsapp_sessions
@@ -53,6 +55,14 @@ func (r *WhatsAppSessions) Link(ctx context.Context, clientID int64, jid string)
 		return WhatsAppSession{}, fmt.Errorf("link whatsapp session for client %d: %w", clientID, err)
 	}
 	return s, nil
+}
+
+// Unlink is not an error when the client has no session.
+func (r *WhatsAppSessions) Unlink(ctx context.Context, clientID int64) error {
+	if _, err := r.db.ExecContext(ctx, queryWhatsAppSessionUnlink, clientID); err != nil {
+		return fmt.Errorf("unlink whatsapp session of client %d: %w", clientID, err)
+	}
+	return nil
 }
 
 func (r *WhatsAppSessions) GetByClientID(ctx context.Context, clientID int64) (WhatsAppSession, error) {
